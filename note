@@ -1,0 +1,265 @@
+#!/usr/bin/python
+
+from blessings  import Terminal
+from mysql      import connector
+from subprocess import call
+from textwrap   import wrap
+from sys        import stdin, stdout, argv
+
+import configparser
+import time
+import pprint
+import tempfile 
+import os
+import parsedatetime
+import code
+
+import toolbelt
+
+
+config = configparser.ConfigParser()
+config.read('/home/dominic/src/notebook/notebook.cfg')
+
+
+def dbconnect():
+    db = connector.connect(
+      user=config['main']['user'],
+      password=config['main']['password'],
+      host=config['main']['host'],
+      database=config['main']['database']
+    );
+    return db, db.cursor()
+
+
+db, cursor = dbconnect();
+pp = pprint.PrettyPrinter(indent=4)
+ed = os.environ.get('EDITOR','vim')
+t = Terminal(force_styling=True)
+cal = parsedatetime.Calendar();
+
+
+
+def incolor(color, msg):
+  if color == "red": msg = t.red(msg)
+  elif color == "yellow": msg = t.bold_yellow(msg)
+  elif color == "green": msg = t.green(msg)
+  elif color == "blue": msg = t.blue(msg)
+  elif color == "purple": msg = t.magenta(msg)
+  elif color == "black": msg = t.dim_white(msg)
+  return msg
+
+
+def isint(s):
+    try: 
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
+while True:
+
+
+  if len(argv) > 1:
+      cmd = argv[1:]
+  else:
+      stdout.write("note> ")
+      cmd = stdin.readline().split();
+
+
+  if cmd[0] == "create":
+
+    if len(cmd) > 1:
+      color = cmd[1]
+    else:
+      stdout.write("color>    ")
+      color = stdin.readline().split()[0]
+
+    if len(cmd) > 2:
+      category = cmd[2];
+    else:
+      stdout.write("category> ")
+      category = stdin.readline().split()[0]
+
+    if len(cmd) > 3:
+      subject = cmd[3];
+    else:
+      stdout.write("subject>  ")
+      subject = stdin.readline().split()[0]
+
+    if category == "reminder":
+        if len(cmd) > 4:
+          when = " ".join(cmd[4:]);
+        else:
+          stdout.write("when>    ")
+          when = stdin.readline().rstrip("\n");
+        whenat = cal.parse(when)[0]
+    else:
+        whenat = cal.parse("now")[0];
+
+    whenstr = time.strftime('%Y-%m-%d %H:%M:%S', whenat)
+    with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
+      call([ed, tf.name])
+      note = tf.read()
+    print (color, subject, note)
+    cursor.execute('insert into notes (modified, color, category, subject, note) values (%s, %s, %s, %s, %s)', (whenstr, color, category, subject, note))  
+    db.commit()
+
+
+  elif cmd[0] == "update":
+    clause = " ".join(cmd[1:])
+    cursor.execute("update notes "+clause)
+    db.commit()
+
+
+  elif cmd[0] == "edit":
+    if len(cmd) > 1:
+      it = cmd[1]
+    else:
+      stdout.write("what> ")
+      it = stdin.readline().split()
+    if isint(it): cursor.execute("select * from notes where id=%s", (it,))
+    else:         cursor.execute("select * from notes where subject=%s", (it,))
+    results = cursor.fetchall();
+    note = results[0][5]
+    #code.interact(local=locals())
+    #break;
+    cursor.close();
+    note = toolbelt.editors.vim(note);
+    db, cursor = dbconnect();
+    if isint(it): cursor.execute("update notes set note=%s,modified=current_timestamp where id=%s",      (note,it,))
+    else:         cursor.execute("update notes set note=%s,modified=current_timestamp where subject=%s", (note,it,))
+    db.commit()
+
+
+  elif cmd[0] == "delete":
+    clause = " ".join(cmd[1:])
+    cursor.execute("delete from notes "+clause)
+    db.commit()
+
+
+  elif cmd[0] == "display" or cmd[0] == "disp":
+    clause = " ".join(cmd[1:])
+    cursor.execute("select * from notes where category='main'");
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
+        print incolor(row[2], tag)
+        print(row[5])
+
+
+  elif cmd[0] == "todo":
+    clause = " ".join(cmd[1:])
+    cursor.execute("select * from notes where category='todo' or subject='todo'");
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
+        print incolor(row[2], tag)
+        print(row[5])
+
+
+  elif cmd[0] == "push":
+    clause = " ".join(cmd[1:])
+    cursor.execute("select * from notes where subject='today'");
+    results = cursor.fetchall()
+    if not results: break;
+    note = results[0][5];
+    note = toolbelt.editors.vim(note);
+    id = results[0][0];
+    subject = date("now");
+    category = "archive"
+    color = "purple";
+    cursor.execute("update notes set subject=%s, color=%s, category=%s, note=%s where id=%s", 
+                     (subject, color, category, note, id)
+    );
+    db.commit();
+
+
+  elif cmd[0] == "show":
+    clause = " ".join(cmd[1:])
+    if len(cmd) > 1 and cmd[1] != "where":
+      cursor.execute("select * from notes where (color=%s or category=%s or subject=%s)", (cmd[1],cmd[1],cmd[1]))
+    else:
+      cursor.execute("select * from notes where category<>archive and "+clause)
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {}          {:<}{:>30}'.format(row[0], row[1], row[3], row[4])
+        print incolor(row[2], tag)
+        print(row[5])
+
+
+  elif cmd[0] == "remind":
+    past = cal.parse("16 hours ago")[0]
+    future = cal.parse("16 hours from now")[0]
+    past_str = time.strftime('%Y-%m-%d %H:%M:%S', past)
+    future_str = time.strftime('%Y-%m-%d %H:%M:%S', future)
+    cursor.execute(
+      "select * from notes where category='reminder' and (modified between %s and %s)", 
+      (past_str, future_str))
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
+        print incolor(row[2], tag)
+        print(row[5])
+
+
+  elif cmd[0] == "list":
+    clause = " ".join(cmd[1:])
+    #print "select * from notes "+clause
+    if len(cmd) > 1 and cmd[1] != "where":
+      cursor.execute("select * from notes where color=%s or category=%s", (cmd[1],cmd[1],))
+    elif len(cmd) > 1 and cmd[1] == "where":
+      cursor.execute("select * from notes where category <>'archive' and "+clause)
+    else:
+      cursor.execute("select * from notes where category<>'archive' order by color desc")
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {}         {:<20} {:>}'.format(row[0], row[1], row[3], row[4])
+        print incolor(row[2], tag)
+        #print("     " + row[5].split('\n')[0] + "...\n")
+
+
+  elif cmd[0] == "search":
+    clause = cmd[1]
+    cursor.execute("select * from notes where subject match '"+clause+"' or note match '"+clause+"'")
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[3])
+        print incolor(row[2], tag)
+        print(row[5])
+
+
+  elif cmd[0] == "query":
+    clause = " ".join(cmd[1:])
+    print clause;
+    cursor.execute(clause);
+    try:
+        results = cursor.fetchall()
+        if results: print results;
+    except: pass
+    db.commit();
+
+
+  elif cmd[0] == "help":
+    print " create\n edit\n delete\n show\n list\n search\n quit"
+    print 
+    print incolor("red",   "red     -  work")
+    print incolor("yellow","yellow  -  business")
+    print incolor("green", "green   -  leisure")
+    print incolor("blue",  "blue    -  personal")
+
+
+  elif cmd[0] == "quit":
+    break
+
+
+  else:
+    print("Incorrect command!")
+
+
+  if len(argv) > 1:
+    break
+
+
+db.commit()
+cursor.close()
