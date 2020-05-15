@@ -138,9 +138,9 @@ while True:
     db.commit()
 
 
-  elif cmd[0] == "display" or cmd[0] == "disp":
+  elif cmd[0] == "display" or cmd[0] == "disp" or cmd[0] == "todo":
     clause = " ".join(cmd[1:])
-    cursor.execute("select * from notes where category='main'");
+    cursor.execute("select * from notes where category='main' order by id");
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
@@ -150,7 +150,7 @@ while True:
 
   elif cmd[0] == "todo":
     clause = " ".join(cmd[1:])
-    cursor.execute("select * from notes where category='todo' or subject='todo'");
+    cursor.execute("select * from notes where category='todo' or (subject='todo' and category<>'archive')");
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
@@ -160,27 +160,52 @@ while True:
 
   elif cmd[0] == "push":
     clause = " ".join(cmd[1:])
-    cursor.execute("select * from notes where subject='today'");
+    cursor.execute("select * from notes where category='todo' and subject='%s'" % (clause));
     results = cursor.fetchall()
     if not results: break;
     note = results[0][5];
     note = toolbelt.editors.vim(note);
     id = results[0][0];
-    subject = date("now");
     category = "archive"
+    subject = clause;
     color = "purple";
-    cursor.execute("update notes set subject=%s, color=%s, category=%s, note=%s where id=%s", 
-                     (subject, color, category, note, id)
-    );
+    cursor.execute("update notes set subject=%s, color=%s, category=%s, note=%s where id=%s", (subject, color, category, note, id));
     db.commit();
 
 
   elif cmd[0] == "show":
     clause = " ".join(cmd[1:])
     if len(cmd) > 1 and cmd[1] != "where":
-      cursor.execute("select * from notes where (color=%s or category=%s or subject=%s)", (cmd[1],cmd[1],cmd[1]))
+      cursor.execute("select * from notes where (color=%s or category=%s or subject=%s) and category<>'archive'", (cmd[1],cmd[1],cmd[1]))
     else:
-      cursor.execute("select * from notes where category<>archive and "+clause)
+      cursor.execute("select * from notes where category<>'archive'")
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {}          {:<}{:>30}'.format(row[0], row[1], row[3], row[4])
+        print incolor(row[2], tag)
+        print(row[5])
+
+
+  elif cmd[0] == "log":
+    clause = " ".join(cmd[1:])
+    if len(cmd) > 1 and cmd[1] != "where":
+      cursor.execute("select * from notes where category='archive' and (modified like '%s%' or subject=%s)", (cmd[1],cmd[1]))
+    else:
+      cursor.execute("select * from notes where category='archive'")
+    results = cursor.fetchall()
+    for row in results:
+        tag = '{:<5}> {}         {:<20} {:>}'.format(row[0], row[1], row[3], row[4])
+        print incolor(row[2], tag)
+
+
+  elif cmd[0] == "pull":
+    clause = " ".join(cmd[1:])
+    if len(cmd) > 1 and cmd[1] != "where":
+      cursor.execute("select * from notes where category='archive' and modified like %s", (cmd[1],))
+    if len(cmd) > 1 and cmd[1] == "where":
+      cursor.execute("select * from notes where category='archive' and %s", (cmd[1],))
+    else:
+      cursor.execute("select * from notes where category='archive'");
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {}          {:<}{:>30}'.format(row[0], row[1], row[3], row[4])
