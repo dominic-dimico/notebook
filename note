@@ -119,7 +119,7 @@ while True:
       stdout.write("what> ")
       it = stdin.readline().split()
     if isint(it): cursor.execute("select * from notes where id=%s", (it,))
-    else:         cursor.execute("select * from notes where subject=%s", (it,))
+    else:         cursor.execute("select * from notes where (subject=%s and category<>'archive')", (it,))
     results = cursor.fetchall();
     note = results[0][5]
     #code.interact(local=locals())
