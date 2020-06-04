@@ -124,11 +124,11 @@ while True:
     note = results[0][5]
     #code.interact(local=locals())
     #break;
+    noteid = results[0][0];
     cursor.close();
     note = toolbelt.editors.vim(note);
     db, cursor = dbconnect();
-    if isint(it): cursor.execute("update notes set note=%s,modified=current_timestamp where id=%s",      (note,it,))
-    else:         cursor.execute("update notes set note=%s,modified=current_timestamp where subject=%s", (note,it,))
+    cursor.execute("update notes set note=%s,modified=current_timestamp where id=%s",      (note,noteid,))
     db.commit()
 
 
