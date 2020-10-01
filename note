@@ -13,6 +13,7 @@ import tempfile
 import os
 import parsedatetime
 import code
+import re
 
 import toolbelt
 
@@ -165,11 +166,30 @@ while True:
     if not results: break;
     note = results[0][5];
     note = toolbelt.editors.vim(note);
-    id = results[0][0];
-    category = "archive"
-    subject = clause;
-    color = "purple";
-    cursor.execute("update notes set subject=%s, color=%s, category=%s, note=%s where id=%s", (subject, color, category, note, id));
+    id       = results[0][0];
+    color    = results[0][2];
+    category = results[0][3];
+    subject  = results[0][4];
+    cursor.execute("update notes set subject=%s, color=%s, category=%s, note=%s where id=%s", (clause, "purple", "archive", note, id));
+    # TODO 
+    whenat = cal.parse("now")[0];
+    whenstr = time.strftime('%Y-%m-%d %H:%M:%S', whenat);
+    note = re.sub('.*  \+ .*', '', note);
+    note = re.sub('  \> ', '  * ', note);
+    note = re.sub('  \- ', '  * ', note);
+
+    string_with_empty_lines = note;
+    lines = string_with_empty_lines.split("\n")
+    non_empty_lines = [line for line in lines if line.strip() != ""]
+    string_without_empty_lines = ""
+    for line in non_empty_lines:
+      string_without_empty_lines += line + "\n"
+    note = string_without_empty_lines;
+
+    note = '     * wake\n' + note + '     * sleep\n'
+    note = toolbelt.editors.vim(note);
+    cursor.execute('insert into notes (modified, color, category, subject, note) values (%s, %s, %s, %s, %s)', (whenstr, color, category, subject, note))  
+
     db.commit();
 
 
