@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 from blessings  import Terminal
-from mysql      import connector
+#from mysql      import connector
+from MySQLdb    import connect
 from subprocess import call
 from textwrap   import wrap
 from sys        import stdin, stdout, argv
@@ -23,7 +24,7 @@ config.read('/home/dominic/src/notebook/notebook.cfg')
 
 
 def dbconnect():
-    db = connector.connect(
+    db = connect(
       user=config['main']['user'],
       password=config['main']['password'],
       host=config['main']['host'],
@@ -102,7 +103,7 @@ while True:
     with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
       call([ed, tf.name])
       note = tf.read()
-    print (color, subject, note)
+    print(color, subject, note);
     cursor.execute('insert into notes (modified, color, category, subject, note) values (%s, %s, %s, %s, %s)', (whenstr, color, category, subject, note))  
     db.commit()
 
@@ -145,7 +146,7 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
         print(row[5])
 
 
@@ -155,7 +156,7 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
         print(row[5])
 
 
@@ -202,7 +203,7 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {}          {:<}{:>30}'.format(row[0], row[1], row[3], row[4])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
         print(row[5])
 
 
@@ -215,7 +216,7 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {}         {:<20} {:>}'.format(row[0], row[1], row[3], row[4])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
 
 
   elif cmd[0] == "pull":
@@ -229,7 +230,7 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {}          {:<}{:>30}'.format(row[0], row[1], row[3], row[4])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
         print(row[5])
 
 
@@ -244,13 +245,13 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[4])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
         print(row[5])
 
 
   elif cmd[0] == "list":
     clause = " ".join(cmd[1:])
-    #print "select * from notes "+clause
+    #print("select * from notes "+clause);
     if len(cmd) > 1 and cmd[1] != "where":
       cursor.execute("select * from notes where color=%s or category=%s", (cmd[1],cmd[1],))
     elif len(cmd) > 1 and cmd[1] == "where":
@@ -260,7 +261,7 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {}         {:<20} {:>}'.format(row[0], row[1], row[3], row[4])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
         #print("     " + row[5].split('\n')[0] + "...\n")
 
 
@@ -270,28 +271,28 @@ while True:
     results = cursor.fetchall()
     for row in results:
         tag = '{:<5}> {} {:>50}'.format(row[0], row[1], row[3])
-        print incolor(row[2], tag)
+        print(incolor(row[2], tag));
         print(row[5])
 
 
   elif cmd[0] == "query":
     clause = " ".join(cmd[1:])
-    print clause;
+    print(clause);
     cursor.execute(clause);
     try:
         results = cursor.fetchall()
-        if results: print results;
+        if results: print(results);
     except: pass
     db.commit();
 
 
   elif cmd[0] == "help":
-    print " create\n edit\n delete\n show\n list\n search\n quit"
-    print 
-    print incolor("red",   "red     -  work")
-    print incolor("yellow","yellow  -  business")
-    print incolor("green", "green   -  leisure")
-    print incolor("blue",  "blue    -  personal")
+    print(" create\n edit\n delete\n show\n list\n search\n quit");
+    print();
+    print(incolor("red",   "red     -  work"));
+    print(incolor("yellow","yellow  -  business"));
+    print(incolor("green", "green   -  leisure"));
+    print(incolor("blue",  "blue    -  personal"));
 
 
   elif cmd[0] == "quit":
