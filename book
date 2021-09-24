@@ -1,0 +1,8 @@
+#!/usr/bin/python3
+
+import notebook
+import sys;
+
+if __name__ == "__main__": 
+   ni = notebook.notes.NoteInterpreter();
+   ni.run(sys.argv[1:]);
