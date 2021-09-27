@@ -162,13 +162,12 @@ class ToDoSquid(NotebookSquid):
 class ReminderSquid(NotebookSquid):
 
 
-      def midprocessor(self, args):
-          args['data'] = {
-               'id'    : self.getmaxid(),
+      def postprocessor(self, args):
+          self.update({
+               'id'    : args['data']['id'],
                'often' : 'time' if args['data']['often'] != 'once' else 'once',
                'next'  : quickdate(args['data']['time']),
-          }
-          self.update(args['data']);
+          });
           return args;
 
 
@@ -181,11 +180,13 @@ class ReminderSquid(NotebookSquid):
             },
             'new'   : { 
                'fields' : ['who',  'about', 'how', 'often', 'time', 'what'], 
-               'midprocessor': self.midprocessor,
+               'postprocessor': self.postprocessor,
             },
-            'edit'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'what'], },
-            'list'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'what'], },
-            'view'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'what'], },
+            'edit'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'what'], 
+               'postprocessor': self.postprocessor,
+            },
+            'list'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'next', 'what'], },
+            'view'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'next', 'what'], },
             'join'  : [],
           };
 
