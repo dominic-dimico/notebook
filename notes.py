@@ -2,7 +2,7 @@ import squirrel
 import configparser
 import toolbelt
 quickdate = toolbelt.quickdate.quickdate
-
+format_ = format
 
 # Note interpreter
 class NoteInterpreter(squirrel.squish.SquishInterpreter):
@@ -57,8 +57,8 @@ class NoteInterpreter(squirrel.squish.SquishInterpreter):
         p = df[df['key']=='quicknote']['pattern'].iloc[0]
         m = p.match(string);
         args['dates'] = True;
-        args = self.load_form(args, self.squids['todo'].form['new']);
-        args = self.load_presets(args, self.squids['todo'].form['new']);
+        args = self.load_format(args, self.squids['todo'].format['new']);
+        args = self.load_presets(args, self.squids['todo'].format['new']);
         data = m.groupdict();
         for k in data: args['data'][k] = data[k];
         self.squids['todo'].insert(args['data']);
@@ -105,7 +105,7 @@ class NoteSquid(NotebookSquid):
           super().__init__();
           self.table = "notes";
           self.alias = 'note';
-          self.form  = {
+          self.format  = {
             'search' : {
               'defaults' : ['category', 'color', 'subject', 'id'],
             },
@@ -126,7 +126,7 @@ class ToDoSquid(NotebookSquid):
           super().__init__();
           self.alias = 'todo';
           self.table = "todos";
-          self.form = {
+          self.format = {
             'search' : { 
               'defaults' : ['id', 'color', 'category', 'subject', 'author'],
               'order'  : 'order by color desc',
@@ -174,7 +174,7 @@ class ReminderSquid(NotebookSquid):
       def __init__(self): 
           super().__init__();
           self.table = "reminder";
-          self.form  = {
+          self.format  = {
             'search' : {
               'defaults' : ['id', 'who', 'about', 'how', 'often', 'time', 'what'],
             },
