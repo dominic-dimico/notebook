@@ -1,4 +1,5 @@
 import squirrel
+import os;
 import configparser
 import toolbelt
 quickdate = toolbelt.quickdate.quickdate
@@ -93,7 +94,7 @@ class NotebookSquid(squirrel.squid.Squid):
           configs = {};
           configs = configparser.ConfigParser()
           configs.read(
-              '/home/dominic/.config/notebook/notebook.cfg'
+              os.path.expanduser('~')+'/.config/notebook/notebook.cfg'
           )
           self.config = configs['main'];
 
