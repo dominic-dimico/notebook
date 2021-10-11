@@ -106,18 +106,11 @@ class NoteSquid(NotebookSquid):
           self.table = "notes";
           self.alias = 'note';
           self.format  = {
-            'search' : {
-              'defaults' : ['category', 'color', 'subject', 'id'],
-            },
-            'new'  : { 'fields' : ['id',  'modified',  'category', 'color', 'subject', 'note'], },
-            'edit' : { 'fields' : ['id',  'modified',  'category', 'color', 'subject', 'note'], },
-            'list' : { 
-                'fields' : ['id',  'modified',  'category', 'color', 'subject', 'note'], 
-                'order'  : 'order by color',
-            },
-            'view' : { 'fields' : ['id',  'modified',  'category', 'color', 'subject', 'note'], },
+            'fields' : ['id', 'modified',  'category', 'color', 'subject', 'note'],
+            'list' : { 'order'  : 'order by color', },
             'join'  : [],
           };
+          self.configure();
 
 
 
@@ -127,10 +120,10 @@ class ToDoSquid(NotebookSquid):
           self.alias = 'todo';
           self.table = "todos";
           self.format = {
+            'fields': ['id', 'color', 'priority', 'deadline', 'remind', 'category', 'subject',  'quicknote'],
             'search' : { 
-              'defaults' : ['id', 'color', 'category', 'subject', 'author'],
               'order'  : 'order by color desc',
-              },
+            },
             'new': { 'fields':   ['color', 'category', 'subject', 'remind', 'quicknote'],
                      'preset': {
                        'color'    : 'red',
@@ -142,21 +135,15 @@ class ToDoSquid(NotebookSquid):
                        'priority' :  3,
                      }
                    },
-            'edit' : { 'fields':   ['color', 'category', 'subject', 'remind', 'quicknote'],
-                       'preset': {
-                         'modified' : 'now',
-                       }
+            'edit' : { 'exclude': ['modified'],
+                       'preset': { 'modified' : 'now', }
             },
-            'view':{'fields': ['id',       'priority', 'category', 'subject',  
-                               'deadline', 'remind',   'tags',       'note']
-            },
-            'list':{'fields': ['id',       'color',    'priority', 'deadline', 'remind',   
-                               'category', 'subject',  'quicknote'],
+            'list':{
                 'order'  : 'order by color',
             },
-            'join'  : [
-            ],
+            'join'  : [ ],
           };
+          self.configure();
 
 
 class ReminderSquid(NotebookSquid):
@@ -170,25 +157,16 @@ class ReminderSquid(NotebookSquid):
           });
           return args;
 
-
       def __init__(self): 
           super().__init__();
           self.table = "reminder";
           self.format  = {
-            'search' : {
-              'defaults' : ['id', 'who', 'about', 'how', 'often', 'time', 'what'],
-            },
-            'new'   : { 
-               'fields' : ['who',  'about', 'how', 'often', 'time', 'what'], 
-               'postprocessor': self.postprocessor,
-            },
-            'edit'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'what'], 
-               'postprocessor': self.postprocessor,
-            },
-            'list'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'next', 'what'], },
-            'view'  : { 'fields' : ['id',  'who',  'about', 'how', 'often', 'time', 'next', 'what'], },
+            'fields' : ['who', 'about', 'how', 'often', 'time', 'tags', 'what'],
+            'new'   : { 'postprocessor': self.postprocessor, },
+            'edit'  : { 'postprocessor': self.postprocessor, },
             'join'  : [],
           };
+          self.configure();
 
 
 class Note(squirrel.squish.Squish, NoteSquid):
